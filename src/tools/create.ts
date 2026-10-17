@@ -17,7 +17,7 @@ import type { ServiceName } from '../config.js';
 // Shared fragments
 // ---------------------------------------------------------------------------------------------
 
-const uuid = z.string().uuid();
+const uuid = z.guid();
 
 /**
  * A link target. Only http(s): a `javascript:` or `data:` URL would be stored in Cloud ALM and
