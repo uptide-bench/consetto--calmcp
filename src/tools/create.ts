@@ -17,7 +17,8 @@ import type { ServiceName } from '../config.js';
 // Shared fragments
 // ---------------------------------------------------------------------------------------------
 
-const uuid = z.string().uuid();
+// z.guid() keeps zod 3's lenient 8-4-4-4-12 hex check; zod 4's z.uuid() also enforces RFC version/variant bits.
+const uuid = z.guid();
 
 /**
  * A link target. Only http(s): a `javascript:` or `data:` URL would be stored in Cloud ALM and

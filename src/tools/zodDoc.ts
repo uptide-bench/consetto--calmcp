@@ -36,7 +36,7 @@ function unwrap(schema: z.core.$ZodType): { inner: z.core.$ZodType; optional: bo
 
 /** Describe the type of one (unwrapped) schema node. */
 function describeType(schema: z.core.$ZodType): Pick<FieldDoc, 'type' | 'values' | 'fields'> {
-  if (schema instanceof z.ZodString) return { type: 'string' };
+  if (schema instanceof z.ZodString || schema instanceof z.ZodGUID) return { type: 'string' };
   if (schema instanceof z.ZodNumber) return { type: 'number' };
   if (schema instanceof z.ZodBoolean) return { type: 'boolean' };
   if (schema instanceof z.ZodEnum) return { type: 'string', values: [...schema.options] };
