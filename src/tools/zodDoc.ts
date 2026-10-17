@@ -1,7 +1,8 @@
 // Field documentation derived from zod schemas, so what `calm_resources` tells a client about a
 // `calm_create` payload cannot drift from what the validation actually accepts.
 //
-// Reads zod v3 internals (`_def`); a zod major upgrade has to revisit `unwrap` and `describeType`.
+// Reads zod v4 internals (`def`, `globalRegistry`); a zod major upgrade has to revisit `unwrap` and
+// `describeType`.
 
 import { z } from 'zod';
 
@@ -17,7 +18,7 @@ export interface FieldDoc {
 }
 
 /** Strip optional/nullable/default wrappers, remembering that the field may be omitted. */
-function unwrap(schema: z.ZodTypeAny): { inner: z.ZodTypeAny; optional: boolean } {
+function unwrap(schema: z.core.$ZodType): { inner: z.core.$ZodType; optional: boolean } {
   let inner = schema;
   let optional = false;
   for (;;) {
@@ -25,7 +26,7 @@ function unwrap(schema: z.ZodTypeAny): { inner: z.ZodTypeAny; optional: boolean 
       inner = inner.unwrap();
       optional = true;
     } else if (inner instanceof z.ZodDefault) {
-      inner = inner._def.innerType;
+      inner = inner.def.innerType;
       optional = true;
     } else {
       return { inner, optional };
@@ -34,13 +35,13 @@ function unwrap(schema: z.ZodTypeAny): { inner: z.ZodTypeAny; optional: boolean 
 }
 
 /** Describe the type of one (unwrapped) schema node. */
-function describeType(schema: z.ZodTypeAny): Pick<FieldDoc, 'type' | 'values' | 'fields'> {
+function describeType(schema: z.core.$ZodType): Pick<FieldDoc, 'type' | 'values' | 'fields'> {
   if (schema instanceof z.ZodString) return { type: 'string' };
   if (schema instanceof z.ZodNumber) return { type: 'number' };
   if (schema instanceof z.ZodBoolean) return { type: 'boolean' };
   if (schema instanceof z.ZodEnum) return { type: 'string', values: [...schema.options] };
   if (schema instanceof z.ZodUnion) {
-    const values = (schema.options as z.ZodTypeAny[])
+    const values = schema.options
       .filter((o): o is z.ZodLiteral<string | number> => o instanceof z.ZodLiteral)
       .map((o) => o.value);
     return { type: typeof values[0] === 'number' ? 'number' : 'string', values };
@@ -62,7 +63,8 @@ function describeType(schema: z.ZodTypeAny): Pick<FieldDoc, 'type' | 'values' | 
 export function describeObject(schema: z.ZodObject<z.ZodRawShape>): FieldDoc[] {
   const docs = Object.entries(schema.shape).map(([name, property]) => {
     const { inner, optional } = unwrap(property);
-    const description = property.description ?? inner.description;
+    const description =
+      z.globalRegistry.get(property)?.description ?? z.globalRegistry.get(inner)?.description;
     const doc: FieldDoc = { name, required: !optional, ...describeType(inner) };
     if (doc.values === undefined) delete doc.values;
     if (doc.fields === undefined) delete doc.fields;
